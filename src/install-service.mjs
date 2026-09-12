@@ -3,25 +3,23 @@
 import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import {
-  BUNDLE_ID,
   LAUNCH_AGENT_PATH,
   LOG_PATH,
   TARGET_APP,
   appPaths,
 } from "./config.mjs";
+import {
+  NODE_PATH,
+  SERVICE_DOMAIN,
+  SERVICE_NAME,
+  SERVICE_TARGET,
+  SYNC_SCRIPT,
+} from "./service-config.mjs";
 
 const execFileAsync = promisify(execFile);
-const projectRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const syncScript = path.join(projectRoot, "src", "timing-title-sync.mjs");
-// Use Homebrew's stable shim so a Node upgrade does not strand the LaunchAgent
-// on a removed versioned Cellar path.
-const nodePath = "/opt/homebrew/bin/node";
-const serviceName = `${BUNDLE_ID}.sync`;
-const domain = `gui/${process.getuid()}`;
 
 function escapeXml(value) {
   return value
@@ -37,11 +35,11 @@ const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>${serviceName}</string>
+  <string>${SERVICE_NAME}</string>
   <key>ProgramArguments</key>
   <array>
-    <string>${escapeXml(nodePath)}</string>
-    <string>${escapeXml(syncScript)}</string>
+    <string>${escapeXml(NODE_PATH)}</string>
+    <string>${escapeXml(SYNC_SCRIPT)}</string>
   </array>
   <key>RunAtLoad</key>
   <true/>
@@ -67,9 +65,10 @@ async function install() {
   await fs.writeFile(LAUNCH_AGENT_PATH, plist, "utf8");
   await run("/usr/bin/plutil", ["-lint", LAUNCH_AGENT_PATH]);
 
-  await run("/bin/launchctl", ["bootout", domain, LAUNCH_AGENT_PATH]).catch(() => {});
-  await run("/bin/launchctl", ["bootstrap", domain, LAUNCH_AGENT_PATH]);
-  await run("/bin/launchctl", ["kickstart", "-k", `${domain}/${serviceName}`]);
+  await run("/bin/launchctl", ["bootout", SERVICE_DOMAIN, LAUNCH_AGENT_PATH]).catch(() => {});
+  await run("/bin/launchctl", ["enable", SERVICE_TARGET]);
+  await run("/bin/launchctl", ["bootstrap", SERVICE_DOMAIN, LAUNCH_AGENT_PATH]);
+  await run("/bin/launchctl", ["kickstart", "-k", SERVICE_TARGET]);
 
   console.log(JSON.stringify({
     status: "installed",

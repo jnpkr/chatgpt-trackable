@@ -7,6 +7,9 @@
     "install-app": "node src/prepare-app.mjs install",
     "repair-app": "node src/prepare-app.mjs repair",
     "install-service": "node src/install-service.mjs",
+    "disable-service": "node src/manage-service.mjs disable",
+    "enable-service": "node src/manage-service.mjs enable",
+    "uninstall-service": "node src/manage-service.mjs uninstall",
     "sync": "node src/timing-title-sync.mjs",
     "test": "node --test"
   },

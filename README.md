@@ -23,7 +23,7 @@ A small per-user background service reads the active renderer title. For Work an
 
 ## Background service
 
-`npm run install-service` installs this per-user macOS LaunchAgent:
+`pnpm run install-service` installs this per-user macOS LaunchAgent:
 
 ```text
 ~/Library/LaunchAgents/com.jonparker.chatgpt-trackable.sync.plist
@@ -41,6 +41,26 @@ The service remains running when ChatGPT Trackable is closed, but does no app-se
 ~/Library/Logs/ChatGPT Trackable.log
 ```
 
+To stop the service and keep it disabled across logins:
+
+```sh
+pnpm run disable-service
+```
+
+To re-enable and start it:
+
+```sh
+pnpm run enable-service
+```
+
+To stop the service and uninstall its LaunchAgent:
+
+```sh
+pnpm run uninstall-service
+```
+
+Uninstalling the service moves the LaunchAgent property list to Trash so it remains recoverable. It does not remove ChatGPT Trackable, this project, or the service log.
+
 ## Safety boundary
 
 ChatGPT Trackable uses the existing profile at `~/Library/Application Support/Codex`. Its launcher refuses to start while the official ChatGPT app is running. Do not start the official app while ChatGPT Trackable is open, because two Electron instances must not write to the same profile concurrently.
@@ -52,8 +72,8 @@ The project never accesses Timing's database.
 From this directory:
 
 ```sh
-npm run install-app
-npm run install-service
+pnpm run install-app
+pnpm run install-service
 ```
 
 Quit the official ChatGPT app, then open `~/Applications/ChatGPT Trackable.app`.
@@ -63,7 +83,7 @@ Quit the official ChatGPT app, then open `~/Applications/ChatGPT Trackable.app`.
 An in-app update may restore OpenAI's original name, identifier, executable, and signature. After the updated app has quit, run:
 
 ```sh
-npm run repair-app
+pnpm run repair-app
 ```
 
 Repairing is done against a staged APFS clone. The previous app is retained beside the installed app under a hidden, timestamped name rather than deleted.
