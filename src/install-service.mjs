@@ -47,10 +47,15 @@ const plist = `<?xml version="1.0" encoding="UTF-8"?>
   <true/>
   <key>ThrottleInterval</key>
   <integer>5</integer>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>CHATGPT_TRACKABLE_LOG_PATH</key>
+    <string>${escapeXml(LOG_PATH)}</string>
+  </dict>
   <key>StandardOutPath</key>
-  <string>${escapeXml(LOG_PATH)}</string>
+  <string>/dev/null</string>
   <key>StandardErrorPath</key>
-  <string>${escapeXml(LOG_PATH)}</string>
+  <string>/dev/null</string>
 </dict>
 </plist>
 `;

@@ -7,6 +7,7 @@ import {
   applyStateExpression,
   inspect,
 } from "./inspector.mjs";
+import { RotatingLogger } from "./logger.mjs";
 import { activityKey, normalizeActivity } from "./state.mjs";
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -16,6 +17,10 @@ const refreshMs = Number(process.env.CHATGPT_TRACKABLE_REFRESH_MS ?? 30_000);
 const codexPath = process.env.CHATGPT_TRACKABLE_CODEX_PATH ?? appPaths().codex;
 const expectedExecutableName = process.env.CHATGPT_TRACKABLE_EXPECTED_EXECUTABLE
   ?? REAL_EXECUTABLE_NAME;
+const logger = new RotatingLogger(process.env.CHATGPT_TRACKABLE_LOG_PATH, {
+  maxBytes: Number(process.env.CHATGPT_TRACKABLE_LOG_MAX_BYTES ?? 1024 * 1024),
+  backups: Number(process.env.CHATGPT_TRACKABLE_LOG_BACKUPS ?? 3),
+});
 
 let appServer = null;
 let previousKey = null;
@@ -36,11 +41,11 @@ async function getAppServer() {
   }
 }
 
-function reportError(error) {
+async function reportError(error) {
   const message = error instanceof Error ? error.message : String(error);
   if (message === previousError) return;
   previousError = message;
-  console.error(`[chatgpt-trackable] ${message}`);
+  await logger.error(`[chatgpt-trackable] ${message}`);
 }
 
 function stop() {
@@ -70,20 +75,23 @@ try {
       const activity = normalizeActivity(active, thread);
       const key = activityKey(activity);
       const now = Date.now();
-      if (key !== previousKey || now - lastRefresh >= refreshMs) {
+      const changed = key !== previousKey;
+      if (changed || now - lastRefresh >= refreshMs) {
         const applied = await inspect(port, applyStateExpression(activity));
         if (applied?.error) throw new Error(applied.error);
         previousKey = key;
         lastRefresh = now;
-        console.log(JSON.stringify({
-          title: applied.title,
-          threadId: activity.threadId,
-          representedFilename: applied.representedFilename,
-        }));
+        if (changed) {
+          await logger.info(JSON.stringify({
+            title: applied.title,
+            threadId: activity.threadId,
+            representedFilename: applied.representedFilename,
+          }));
+        }
       }
       previousError = null;
     } catch (error) {
-      reportError(error);
+      await reportError(error);
       previousKey = null;
     }
 

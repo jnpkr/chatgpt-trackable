@@ -35,11 +35,13 @@ macOS starts it at login, restarts it if it exits, and runs this command:
 /opt/homebrew/bin/node /Users/jon/Dev/personal/chatgpt-trackable/src/timing-title-sync.mjs
 ```
 
-The service remains running when ChatGPT Trackable is closed, but does no app-server work until it finds the app's local inspector on port `49281`. Its output is written to:
+The service remains running when ChatGPT Trackable is closed, but does no app-server work until it finds the app's local inspector on port `49281`. It logs only activity changes and distinct errors to:
 
 ```text
 ~/Library/Logs/ChatGPT Trackable.log
 ```
+
+The log rotates at 1 MiB and retains three backups: `.1`, `.2`, and `.3`. The size and backup count can be changed with `CHATGPT_TRACKABLE_LOG_MAX_BYTES` and `CHATGPT_TRACKABLE_LOG_BACKUPS`.
 
 To stop the service and keep it disabled across logins:
 
@@ -100,3 +102,6 @@ The defaults can be overridden with environment variables:
 - `CHATGPT_TRACKABLE_REFRESH_MS`
 - `CHATGPT_TRACKABLE_CODEX_PATH`
 - `CHATGPT_TRACKABLE_EXPECTED_EXECUTABLE`
+- `CHATGPT_TRACKABLE_LOG_PATH`
+- `CHATGPT_TRACKABLE_LOG_MAX_BYTES`
+- `CHATGPT_TRACKABLE_LOG_BACKUPS`
