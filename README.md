@@ -1,94 +1,92 @@
 # ChatGPT Trackable
 
-ChatGPT Trackable is a neutral copy of the unified ChatGPT desktop app that exposes the active conversation to Timing through ordinary macOS window metadata.
+ChatGPT Trackable makes Timing record activity against individual ChatGPT conversations and Work/Codex tasks. It publishes the active title and working directory as native macOS window metadata that Timing can capture automatically.
 
-It records:
+## Tracking behaviour
 
-- the active conversation title for normal ChatGPT conversations;
-- the active task title and working directory for Work and Codex tasks;
-- a title with no stale working directory on Settings and other non-task screens.
-
-It does not read or write Timing's database and does not create time entries or timers.
+- Normal ChatGPT conversations publish the conversation title.
+- Work and Codex tasks publish the task title and working directory.
+- Settings and other general screens publish their screen title without a working directory.
 
 ## How it works
 
-The installer makes `~/Applications/ChatGPT Trackable.app` from the official `/Applications/ChatGPT.app`. Its changes are deliberately mechanical:
+The project creates `~/Applications/ChatGPT Trackable.app` from the official `/Applications/ChatGPT.app` with:
 
-1. Give the copy a neutral bundle identifier and the name `ChatGPT Trackable`.
-2. Use the different blue terminal icon already shipped inside the official app.
-3. Wrap the original executable so the Electron main-process inspector is available locally.
-4. Ad-hoc sign the resulting app.
+- the neutral bundle identifier `com.jonparker.chatgpt-trackable`;
+- the display name `ChatGPT Trackable`;
+- a distinct blue terminal icon already included with ChatGPT;
+- a launcher that enables the local Electron inspector.
 
-A small per-user background service reads the active renderer title. For Work and Codex tasks, it obtains the exact task ID from the active header and calls the documented read-only `thread/read` method to resolve the task's working directory. It then sets the native macOS title and represented file path that Timing already knows how to record.
+A per-user LaunchAgent connects to the inspector while ChatGPT Trackable is open. It reads the active conversation title and, for Work/Codex tasks, resolves the active task ID and working directory through the bundled Codex app server. It then updates the window title and represented file path used by Timing.
 
-## Background service
+## Requirements
 
-`pnpm run install-service` installs this per-user macOS LaunchAgent:
-
-```text
-~/Library/LaunchAgents/com.jonparker.chatgpt-trackable.sync.plist
-```
-
-macOS starts it at login, restarts it if it exits, and runs this command:
-
-```text
-/opt/homebrew/bin/node /Users/jon/Dev/personal/chatgpt-trackable/src/timing-title-sync.mjs
-```
-
-The service remains running when ChatGPT Trackable is closed, but does no app-server work until it finds the app's local inspector on port `49281`. It logs only activity changes and distinct errors to:
-
-```text
-~/Library/Logs/ChatGPT Trackable.log
-```
-
-The log rotates at 1 MiB and retains three backups: `.1`, `.2`, and `.3`. The size and backup count can be changed with `CHATGPT_TRACKABLE_LOG_MAX_BYTES` and `CHATGPT_TRACKABLE_LOG_BACKUPS`.
-
-To stop the service and keep it disabled across logins:
-
-```sh
-pnpm run disable-service
-```
-
-To re-enable and start it:
-
-```sh
-pnpm run enable-service
-```
-
-To stop the service and uninstall its LaunchAgent:
-
-```sh
-pnpm run uninstall-service
-```
-
-Uninstalling the service moves the LaunchAgent property list to Trash so it remains recoverable. It does not remove ChatGPT Trackable, this project, or the service log.
-
-## Safety boundary
-
-ChatGPT Trackable uses the existing profile at `~/Library/Application Support/Codex`. Its launcher refuses to start while the official ChatGPT app is running. Do not start the official app while ChatGPT Trackable is open, because two Electron instances must not write to the same profile concurrently.
-
-The project never accesses Timing's database.
+- macOS
+- The official ChatGPT app at `/Applications/ChatGPT.app`
+- Node.js at `/opt/homebrew/bin/node`
+- pnpm
 
 ## Install
 
-From this directory:
+Run from this directory:
 
 ```sh
 pnpm run install-app
 pnpm run install-service
 ```
 
+This installs:
+
+- the app at `~/Applications/ChatGPT Trackable.app`;
+- the LaunchAgent at `~/Library/LaunchAgents/com.jonparker.chatgpt-trackable.sync.plist`.
+
+## Use
+
 Quit the official ChatGPT app, then open `~/Applications/ChatGPT Trackable.app`.
+
+ChatGPT Trackable uses the existing profile at `~/Library/Application Support/Codex`. Do not run it at the same time as the official ChatGPT app. The launcher blocks ChatGPT Trackable from opening when the official app is already running.
+
+## Service management
+
+Disable the service across logins:
+
+```sh
+pnpm run disable-service
+```
+
+Re-enable and start it:
+
+```sh
+pnpm run enable-service
+```
+
+Stop the service and uninstall its LaunchAgent:
+
+```sh
+pnpm run uninstall-service
+```
+
+Uninstall moves the LaunchAgent property list to Trash. Reinstall it with `pnpm run install-service`.
+
+## Logs
+
+The service logs activity changes and distinct errors to:
+
+```text
+~/Library/Logs/ChatGPT Trackable.log
+```
+
+The log rotates at 1 MiB and retains three backups: `.1`, `.2`, and `.3`.
 
 ## Updates
 
-An in-app update may restore OpenAI's original name, identifier, executable, and signature. After the updated app has quit, run:
+A ChatGPT update can replace the patched app metadata and launcher. After the updated app has quit, reapply them with:
 
 ```sh
 pnpm run repair-app
 ```
 
-Repairing is done against a staged APFS clone. The previous app is retained beside the installed app under a hidden, timestamped name rather than deleted.
+Repair runs against a staged APFS clone and retains the previous app beside the installed app under a hidden, timestamped name.
 
 ## Configuration
 
