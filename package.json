@@ -1,0 +1,16 @@
+{
+  "name": "chatgpt-trackable",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "install-app": "node src/prepare-app.mjs install",
+    "repair-app": "node src/prepare-app.mjs repair",
+    "install-service": "node src/install-service.mjs",
+    "sync": "node src/timing-title-sync.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
